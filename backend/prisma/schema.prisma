@@ -24,11 +24,12 @@ enum InsuranceType {
 }
 
 model Customer {
-  id            String      @id @default(uuid()) @db.Uuid
-  firstName     String      @db.VarChar(255)
-  lastName      String      @db.VarChar(255)
+  id            String         @id @default(uuid()) @db.Uuid
+  firstName     String         @db.VarChar(255)
+  lastName      String         @db.VarChar(255)
   dateOfBirth   DateTime
   policies      Policy[]
+  familyMembers FamilyMember[]
 }
 
 model Policy {
@@ -41,4 +42,26 @@ model Policy {
   startDate     DateTime
   endDate       DateTime?
   createdAt     DateTime      @default(now())
+
+  familyMembers FamilyMembersOnPolicy[]
+}
+
+model FamilyMember {
+  id         String   @id @default(uuid()) @db.Uuid
+  firstName  String   @db.VarChar(255)
+  lastName   String   @db.VarChar(255)
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String   @db.Uuid
+
+  policies FamilyMembersOnPolicy[]
+}
+
+model FamilyMembersOnPolicy {
+  policy         Policy       @relation(fields: [policyId], references: [id])
+  policyId       String       @db.Uuid
+  familyMember   FamilyMember @relation(fields: [familyMemberId], references: [id])
+  familyMemberId String       @db.Uuid
+  assignedAt     DateTime     @default(now())
+
+  @@id([policyId, familyMemberId])
 }
