@@ -5,7 +5,18 @@ const router = Router();
 const prisma = new PrismaClient();
 
 router.get("/policies", async (req: Request, res: Response) => {
-  const { search } = req.query;
+  const { search, order } = req.query;
+
+  const orderGroups = String(order)
+    .split(",")
+    .map((group) => group.trim())
+    .map((subSplit) => {
+      let splitGroup = subSplit.split(":");
+
+      return {
+        [splitGroup[0]]: splitGroup[1],
+      };
+    });
 
   const or: Prisma.PolicyWhereInput = search
     ? {
@@ -29,6 +40,7 @@ router.get("/policies", async (req: Request, res: Response) => {
     where: {
       ...or,
     },
+    orderBy: order ? orderGroups : [],
     select: {
       id: true,
       provider: true,
