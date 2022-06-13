@@ -162,10 +162,84 @@ router.get("/policies/:policy_id", async (req: Request, res: Response) => {
   return res.json(policy);
 });
 
+router.patch("/policies/:policy_id", async (req: Request, res: Response) => {
+  const { policy_id: policyId } = req.params;
+
+  const { provider, insurance_type, status, end_date, family_members } =
+    req.body;
+
+  const policy = await prisma.policy.findUnique({
+    where: {
+      id: policyId,
+    },
+    select: {
+      familyMembers: {
+        select: {
+          id: true,
+        },
+      },
+    },
+  });
+
+  const currentPolicyFamilyMembers = policy?.familyMembers.map((f) => f.id);
+
+  // to be left alone -> intersection
+  // const inBothOriginalAndInUpdate = family_members.filter((x: string) =>
+  //   currentPolicyFamilyMembers?.includes(x)
+  // );
+
+  // to be removed -> difference
+  const inOriginalButNotInUpdate = currentPolicyFamilyMembers?.filter(
+    (x) => !family_members.includes(x)
+  );
+
+  // to be added -> difference
+  const inUpdateButNotInOriginal = family_members?.filter(
+    (x: string) => !currentPolicyFamilyMembers?.includes(x)
+  );
+
+  const updatedPolicy = await prisma.policy.update({
+    where: {
+      id: policyId,
+    },
+    data: {
+      provider,
+      insuranceType: insurance_type,
+      status,
+      endDate: end_date,
+      familyMembers: {
+        connect: inUpdateButNotInOriginal.map((m: any) => ({ id: m })),
+        disconnect: inOriginalButNotInUpdate?.map((m: any) => ({ id: m })),
+      },
+    },
+    select: {
+      id: true,
+      provider: true,
+      insuranceType: true,
+      status: true,
+      customer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          dateOfBirth: true,
+        },
+      },
+      familyMembers: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+  });
+
+  return res.json(updatedPolicy);
+});
+
 /* 
-
 Family Members
-
 */
 router.get(
   "/customers/:customer_id/family-members",
