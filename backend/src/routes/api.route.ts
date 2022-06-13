@@ -5,7 +5,12 @@ const router = Router();
 const prisma = new PrismaClient();
 
 router.get("/policies", async (req: Request, res: Response) => {
-  const { search, order } = req.query;
+  const { search, order, page, limit } = req.query;
+
+  let currentPage = Number(page) || 1;
+  const take = Number(limit) || 5;
+
+  const skip = (currentPage - 1) * take;
 
   const orderGroups = String(order)
     .split(",")
@@ -37,6 +42,8 @@ router.get("/policies", async (req: Request, res: Response) => {
     : {};
 
   const policies = await prisma.policy.findMany({
+    take,
+    skip,
     where: {
       ...or,
     },
