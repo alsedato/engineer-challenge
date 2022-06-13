@@ -43,7 +43,7 @@ model Policy {
   endDate       DateTime?
   createdAt     DateTime      @default(now())
 
-  familyMembers FamilyMembersOnPolicy[]
+  familyMembers FamilyMember[]
 }
 
 model FamilyMember {
@@ -53,15 +53,5 @@ model FamilyMember {
   customer   Customer @relation(fields: [customerId], references: [id])
   customerId String   @db.Uuid
 
-  policies FamilyMembersOnPolicy[]
-}
-
-model FamilyMembersOnPolicy {
-  policy         Policy       @relation(fields: [policyId], references: [id])
-  policyId       String       @db.Uuid
-  familyMember   FamilyMember @relation(fields: [familyMemberId], references: [id])
-  familyMemberId String       @db.Uuid
-  assignedAt     DateTime     @default(now())
-
-  @@id([policyId, familyMemberId])
+  policies Policy[]
 }

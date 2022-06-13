@@ -63,10 +63,103 @@ router.get("/policies", async (req: Request, res: Response) => {
           dateOfBirth: true,
         },
       },
+      familyMembers: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
     },
   });
 
   return res.json(policies);
+});
+
+router.post("/policies", async (req: Request, res: Response) => {
+  const {
+    customer_id,
+    provider,
+    insurance_type,
+    status,
+    start_date,
+    end_date,
+    family_members,
+  } = req.body;
+
+  const customer = await prisma.customer.findUnique({
+    where: {
+      id: customer_id,
+    },
+  });
+
+  if (!customer) {
+    return res.status(404).json({
+      status: false,
+      message: "customer not found",
+    });
+  }
+
+  let familyMembersList: string | any[] = [];
+
+  if (
+    family_members &&
+    Array.isArray(family_members) &&
+    family_members.length > 0
+  ) {
+    familyMembersList = family_members.map((m: any) => ({ id: m }));
+  }
+
+  const policy = await prisma.policy.create({
+    data: {
+      provider,
+      insuranceType: insurance_type,
+      status,
+      startDate: start_date,
+      endDate: end_date,
+      customer: {
+        connect: { id: customer_id },
+      },
+      familyMembers: { connect: familyMembersList },
+    },
+  });
+
+  return res.status(201).json(policy);
+});
+
+router.get("/policies/:policy_id", async (req: Request, res: Response) => {
+  const { policy_id: policyId } = req.params;
+
+  const policy = await prisma.policy.findUnique({
+    where: {
+      id: policyId,
+    },
+    select: {
+      id: true,
+      provider: true,
+      insuranceType: true,
+      status: true,
+      startDate: true,
+      endDate: true,
+      customer: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          dateOfBirth: true,
+        },
+      },
+      familyMembers: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+  });
+
+  return res.json(policy);
 });
 
 /* 
