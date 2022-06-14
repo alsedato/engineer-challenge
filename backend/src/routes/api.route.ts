@@ -173,30 +173,47 @@ router.patch("/policies/:policy_id", async (req: Request, res: Response) => {
       id: policyId,
     },
     select: {
+      provider: true,
+      insuranceType: true,
+      status: true,
+      endDate: true,
       familyMembers: {
         select: {
           id: true,
+          firstName: true,
+          lastName: true,
         },
       },
     },
   });
 
-  const currentPolicyFamilyMembers = policy?.familyMembers.map((f) => f.id);
+  let currentPolicyFamilyMembers: string[] = [];
+
+  const oldPolicyClone = { ...JSON.parse(JSON.stringify(policy)) };
+
+  if (policy?.familyMembers && policy?.familyMembers.length > 0) {
+    currentPolicyFamilyMembers = policy?.familyMembers.map((f) => f.id);
+  }
 
   // to be left alone -> intersection
   // const inBothOriginalAndInUpdate = family_members.filter((x: string) =>
   //   currentPolicyFamilyMembers?.includes(x)
   // );
 
-  // to be removed -> difference
-  const inOriginalButNotInUpdate = currentPolicyFamilyMembers?.filter(
-    (x) => !family_members.includes(x)
-  );
+  let inOriginalButNotInUpdate: any[] = [],
+    inUpdateButNotInOriginal = [];
 
-  // to be added -> difference
-  const inUpdateButNotInOriginal = family_members?.filter(
-    (x: string) => !currentPolicyFamilyMembers?.includes(x)
-  );
+  if (family_members && Array.isArray(family_members)) {
+    // to be removed -> difference
+    inOriginalButNotInUpdate = currentPolicyFamilyMembers?.filter(
+      (x) => !family_members.includes(x)
+    );
+
+    // to be added -> difference
+    inUpdateButNotInOriginal = family_members?.filter(
+      (x: string) => !currentPolicyFamilyMembers?.includes(x)
+    );
+  }
 
   const updatedPolicy = await prisma.policy.update({
     where: {
@@ -217,6 +234,7 @@ router.patch("/policies/:policy_id", async (req: Request, res: Response) => {
       provider: true,
       insuranceType: true,
       status: true,
+      endDate: true,
       customer: {
         select: {
           id: true,
@@ -234,6 +252,26 @@ router.patch("/policies/:policy_id", async (req: Request, res: Response) => {
       },
     },
   });
+
+  // log history
+  if (
+    (provider && oldPolicyClone.provider !== updatedPolicy.provider) ||
+    (insurance_type &&
+      oldPolicyClone.insuranceType !== updatedPolicy.insuranceType) ||
+    (status && oldPolicyClone.status !== updatedPolicy.status) ||
+    (end_date && oldPolicyClone.endDate !== updatedPolicy.endDate) ||
+    inOriginalButNotInUpdate.length > 0 ||
+    inUpdateButNotInOriginal.length > 0
+  ) {
+    await prisma.policyHistory.create({
+      data: {
+        record: oldPolicyClone,
+        policy: {
+          connect: { id: policyId },
+        },
+      },
+    });
+  }
 
   return res.json(updatedPolicy);
 });
