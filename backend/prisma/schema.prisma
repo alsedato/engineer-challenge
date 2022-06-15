@@ -2,7 +2,8 @@
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
 }
 
 datasource db {
@@ -60,7 +61,7 @@ model FamilyMember {
 model PolicyHistory {
   id String @id @default(uuid()) @db.Uuid
 
-  record Json
+  record String @db.Text
 
   policy   Policy @relation(fields: [policyId], references: [id])
   policyId String @db.Uuid

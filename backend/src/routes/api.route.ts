@@ -23,6 +23,42 @@ router.get("/policies", async (req: Request, res: Response) => {
       };
     });
 
+  const policyHistoryOr: Prisma.PolicyHistoryWhereInput = search
+    ? {
+        OR: [
+          {
+            record: {
+              contains: `"firstName":"${search}"`,
+              mode: "insensitive",
+            },
+          },
+          {
+            record: {
+              contains: `"lastName":"${search}"`,
+              mode: "insensitive",
+            },
+          },
+          {
+            record: {
+              contains: `"provider":"${search}"`,
+              mode: "insensitive",
+            },
+          },
+        ],
+      }
+    : {};
+
+  const policyHistories = await prisma.policyHistory.findMany({
+    where: {
+      ...policyHistoryOr,
+    },
+    select: {
+      policyId: true,
+    },
+  });
+
+  const policyHistoriesPolicyIds = policyHistories.map((p) => p.policyId);
+
   const or: Prisma.PolicyWhereInput = search
     ? {
         OR: [
@@ -35,6 +71,11 @@ router.get("/policies", async (req: Request, res: Response) => {
           {
             customer: {
               lastName: { contains: search as string, mode: "insensitive" },
+            },
+          },
+          {
+            id: {
+              in: policyHistoriesPolicyIds,
             },
           },
         ],
@@ -265,7 +306,7 @@ router.patch("/policies/:policy_id", async (req: Request, res: Response) => {
   ) {
     await prisma.policyHistory.create({
       data: {
-        record: oldPolicyClone,
+        record: JSON.stringify(oldPolicyClone),
         policy: {
           connect: { id: policyId },
         },
