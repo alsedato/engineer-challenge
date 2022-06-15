@@ -317,6 +317,21 @@ router.patch("/policies/:policy_id", async (req: Request, res: Response) => {
   return res.json(updatedPolicy);
 });
 
+router.get(
+  "/policies/:policy_id/history",
+  async (req: Request, res: Response) => {
+    const { policy_id: policyId } = req.params;
+
+    const policyHistories = await prisma.policyHistory.findMany({
+      where: {
+        policyId,
+      },
+    });
+
+    return res.json(policyHistories);
+  }
+);
+
 /* 
 Family Members
 */
