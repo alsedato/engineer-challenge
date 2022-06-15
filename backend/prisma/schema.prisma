@@ -65,4 +65,6 @@ model PolicyHistory {
 
   policy   Policy @relation(fields: [policyId], references: [id])
   policyId String @db.Uuid
+
+  createdAt DateTime @default(now())
 }
